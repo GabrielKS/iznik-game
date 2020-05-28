@@ -1,0 +1,1 @@
+This is a repository for the Iznik game, created by Gabriel Konar-Steenberg in summer 2020.
