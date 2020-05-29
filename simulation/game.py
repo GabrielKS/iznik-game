@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import typing
 from collections import Counter, namedtuple
 import random
+import hashlib
 
 
 class Tile(Enum):
@@ -90,11 +91,11 @@ class GameState:
     turn: int = 0
     player_boards: typing.List[PlayerState] = None
     batches: typing.List[typing.Counter[Tile]] = None
-    bench: typing.Counter[Tile] = field(default_factory=lambda: Counter({**{color: 0 for color in Tile.color_tiles()}, Tile.FIRST: 1}))
+    bench: typing.Counter[Tile] = field(default_factory=lambda: Counter())
 
     # Hidden with default
     supply: typing.Optional[typing.Counter[Tile]] = field(default_factory=lambda: Counter(SETTINGS.INVENTORY))
-    discard: typing.Optional[typing.Counter[Tile]] = field(default_factory=lambda: Counter({color: 0 for color in Tile.color_tiles()}))
+    discard: typing.Optional[typing.Counter[Tile]] = field(default_factory=lambda: Counter())
 
     def __post_init__(self):
         self.player_boards = [PlayerState(self.advanced) for i in range(self.n_players)]
@@ -108,6 +109,12 @@ class GameState:
     @staticmethod
     def _format_tile_list(tiles, separator=" "):
         return "["+separator.join([t.label for t in tiles])+"]"
+    
+    @staticmethod
+    def deterministic_hash(value):
+        hasher = hashlib.sha1()
+        hasher.update(repr(value).encode("utf-8"))
+        return hasher.hexdigest()
 
     def __str__(self):
         result = f"Players: {self.n_players}"
@@ -125,14 +132,14 @@ class GameState:
             result += "\n"+" | ".join([player_strs[i][j] for i in range(self.n_players)])
         result += "\n"
         for i, b in enumerate(self.batches):
-            contents = list(self.batches[i].elements())
+            contents = list(b.elements())
             contents += [Tile.NONE]*(SETTINGS.TILES_PER_BATCH-len(contents))
             result += f"\nBatch {i+1}: "+self._format_tile_list(contents)
         result += "\nBench: "+self._format_tile_list(self.bench.elements())
         if self.supply is not None or self.discard is not None: result += "\n"
         if self.supply is not None: result += "\nSupply: "+self._format_tile_list(self.supply.elements(), separator="")
         if self.discard is not None: result += "\nDiscard: "+self._format_tile_list(self.discard.elements(), separator="")
-        if self.random_state is not None: result += "\n\nHash of random state: "+str(hash(self.random_state))
+        if self.random_state is not None: result += "\n\nHash of random state: "+str(self.deterministic_hash(self.random_state))
 
         return result
 
@@ -145,9 +152,45 @@ class Game:
         random_state = random.Random(random_seed).getstate()
         state = GameState(n_players, advanced, random_state)
         return cls(state)
+    
+    def resupply(self):
+        self._state.supply += self._state.discard
+        self._state.discard.clear()
+    
+    def _draw(self):
+        rgen = random.Random()
+        rgen.setstate(self._state.random_state)
+        supply_elements = list(self._state.supply.elements())
+        tile = supply_elements[rgen.randrange(len(supply_elements))]
+        self._state.supply[tile] -= 1
+        self._state.random_state = rgen.getstate()
+        return tile
+
+    def craft(self):
+        for batch in self._state.batches:
+            for _ in range(SETTINGS.TILES_PER_BATCH):
+                if sum(self._state.supply.values()) <= 0:
+                    print("Resupplying!")
+                    self.resupply()
+                batch[self._draw()] += 1
+        self._state.bench[Tile.FIRST] += 1
+    
+    def __str__(self):
+        return str(self._state)
 
 def main():
-    print(Game.empty_game(2, False)._state)
+    g = Game.empty_game(2, False, random_seed=0)
+    g._state.supply[Tile.BLAZE] = 0
+    g._state.discard[Tile.BLAZE] += 1
+    print(g)
+    g.resupply()
+    print(g)
+    print(g._draw())
+    print(g)
+    g.craft()
+    print(g)
+
+
 
 if __name__ == "__main__":
     main()
