@@ -19,9 +19,9 @@ class Controller:
             self.game_over = True
             return
         else:
-            move = self.players[turn].play()
+            move = self.players[turn].play(self.game.check)
             assert isinstance(move, game.Move), f"Invalid move: {move}"
             assert move.player_id == turn, f"It is Player {turn}'s turn, not Player {move.player_id}'s"
-            self.game.play(*move)
+            self.game.play(move)
             for player in self.players:
                 player.update(self.game.view)

@@ -42,26 +42,37 @@ class Tile(Enum):
     
     def __str__(self):
         return self.name
+    
+class Direction(Enum):
+    LEFT = 1
+    UP = 2
+    RIGHT = 3
+    DOWN = 4
 
 
-Settings = namedtuple("Settings", ("ROWS", "COLS", "INVENTORY", "PENALTIES", "BASIC_PATTERN", "N_BATCHES", "TILES_PER_BATCH"))
+Settings = namedtuple("Settings", ("ROWS", "COLS", "INVENTORY", "PENALTIES", "BASIC_PATTERN", "N_BATCHES", "TILES_PER_BATCH", "BONUSES"))
 SETTINGS = Settings(
     ROWS=5,
     COLS=5,
     INVENTORY={color: 20 for color in Tile.color_tiles()},
-    PENALTIES=(-1, -1, -2, -2, -2, -3, -3),
+    PENALTIES=(1, 1, 2, 2, 2, 3, 3),
     BASIC_PATTERN=[[Tile.from_symbol(c) for c in row] for row in ["ABCDE", "EABCD", "DEABC", "CDEAB", "BCDEA"]],
     N_BATCHES={2: 5, 3: 7, 4: 9},
-    TILES_PER_BATCH=4
+    TILES_PER_BATCH=4,
+    BONUSES=namedtuple("Bonuses", ("HORIZONTAL", "VERTICAL", "COLOR"))(HORIZONTAL=2, VERTICAL=5, COLOR=10)
     )
 Move = namedtuple("Move", ("player_id", "tile", "source_id", "dest_id"))
+MoveOver = namedtuple("MoveOver", ("player_id", "source_id", "dest_id"))
 
 class Error(Exception):
-    pass
-
-class IllegalGameOperationError(Exception):
     def __init__(self, message):
         self.message = message
+
+class IllegalGameOperationError(Error):
+    pass
+
+class ImpossibleGameFlowError(Error):
+    pass
 
 @dataclass
 class PlayerState:
@@ -80,7 +91,7 @@ class PlayerState:
             line += Tile.NONE.symbol*(row+1-self.stage_fullnesses[row])  # pylint: disable=no-member
             line += self.stage_contents[row].symbol*(self.stage_fullnesses[row])
             line += " -> "
-            line += "".join([(str(tile) if tile.iscolor else (str(Tile.NONE) if self.advanced else SETTINGS.BASIC_PATTERN[row][col].symbol.lower())) for col, tile in enumerate(self.panel[row])])
+            line += "".join([(tile.symbol if tile.iscolor else (str(Tile.NONE) if self.advanced else SETTINGS.BASIC_PATTERN[row][col].symbol.lower())) for col, tile in enumerate(self.panel[row])])
             result += line
         penalties_values = "\n"
         penalties_tiles = "\n"
@@ -88,7 +99,7 @@ class PlayerState:
             if p > 0:
                 penalties_values += " "
                 penalties_tiles += " "
-            penalty_value = str(SETTINGS.PENALTIES[p]) if p < len(SETTINGS.PENALTIES) else "-0"
+            penalty_value = str(-SETTINGS.PENALTIES[p]) if p < len(SETTINGS.PENALTIES) else "-0"
             penalty_tile = (self.floor[p] if p < len(self.floor) else Tile.NONE).symbol
             penalties_values += penalty_value
             penalties_tiles += (" "*(len(penalty_value)-len(penalty_tile)))+penalty_tile
@@ -193,39 +204,147 @@ class Game:
         return tile
 
     def _craft(self):
+        self._state.bench[Tile.FIRST] += 1
         for batch in self._state.batches:
             for _ in range(SETTINGS.TILES_PER_BATCH):
-                if sum(self._state.supply.values()) <= 0:
-                    print("Resupplying!")
-                    self._resupply()
+                if sum(self._state.supply.values()) == 0:
+                    if sum(self._state.discard.values()) == 0:  # Discard is empty -> cannot resupply
+                        return
+                    else:
+                        self._resupply()
                 batch[self._draw()] += 1
-        self._state.bench[Tile.FIRST] += 1
     
-    def play(self, player_id, tile, source_id, dest_id):
-        if player_id != self._state.turn: raise IllegalGameOperationError(f"It is not Player {player_id}'s turn, it is Player {self._state.turn}'s turn'")
+    def play(self, move):
+        valid, error = self.check(move)
+        if not valid: raise error
         self._state.turn = (self._state.turn + 1) % self._state.n_players
-        player = self._state.player_boards[player_id]
-        source = self._state.bench if source_id == 0 else self._state.batches[source_id-1]
-        n_tiles = source[tile]
-        if n_tiles == 0: raise IllegalGameOperationError("No tiles to take from "+("bench" if source_id == 0 else f"batch {source_id+1}"))
-        source[tile] = 0
-        if source_id == 0:
+        player = self._state.player_boards[move.player_id]
+        source = self._state.bench if move.source_id == 0 else self._state.batches[move.source_id-1]
+        n_tiles = source[move.tile]
+        source[move.tile] = 0
+        if move.source_id == 0:
             if Tile.FIRST in source:
                 source[Tile.FIRST] -= 1
                 player.floor.append(Tile.FIRST)
         else:
             self._state.bench += source
             source.clear()
-        if dest_id == 0:
-            player.floor += [tile for i in range(n_tiles)]
+        if move.dest_id == 0:
+            player.floor += [move.tile for i in range(n_tiles)]
         else:
-            if player.stage_contents[dest_id-1] not in (tile, Tile.NONE): raise IllegalGameOperationError("Cannot add {tile} to stage of type {player.stage_contents[dest_id-1]}")
-            if player.stage_fullnesses[dest_id-1]+n_tiles > dest_id:
-                overflow = player.stage_fullnesses[dest_id-1]+n_tiles-dest_id
-                player.floor += [tile for i in range(overflow)]
+            if player.stage_fullnesses[move.dest_id-1]+n_tiles > move.dest_id:
+                overflow = player.stage_fullnesses[move.dest_id-1]+n_tiles-move.dest_id
+                player.floor += [move.tile for i in range(overflow)]
                 n_tiles -= overflow
-            player.stage_contents[dest_id-1] = tile
-            player.stage_fullnesses[dest_id-1] += n_tiles
+            player.stage_contents[move.dest_id-1] = move.tile
+            player.stage_fullnesses[move.dest_id-1] += n_tiles
+        
+        if self._tiling_finished():
+            self._end_round()
+    
+    def check(self, move):
+        if move.player_id != self._state.turn: return False, IllegalGameOperationError(f"It is not Player {move.player_id}'s turn, it is Player {self._state.turn}'s turn'")
+        if (self._state.bench if move.source_id == 0 else self._state.batches[move.source_id-1])[move.tile] == 0: return False, IllegalGameOperationError(f"No tiles of type {move.tile} to take from {self.format_source(move.source_id)}")
+        if move.dest_id > 0:
+            player = self._state.player_boards[move.player_id]
+            if move.tile in player.panel[move.dest_id-1]: return False, IllegalGameOperationError(f"There is already a {move.tile} tile in row {move.dest_id}")
+            if player.stage_contents[move.dest_id-1] not in (move.tile, Tile.NONE): return False, IllegalGameOperationError(f"Cannot add {move.tile} to stage of type {player.stage_contents[move.dest_id-1]}")
+        return True, ImpossibleGameFlowError("This error should not be thrown")
+    
+    def _game_over(self):
+        for player in self._state.player_boards:
+            for row in player.panel:
+                if all([tile.iscolor for tile in row]):
+                    return True
+        return False
+    
+    def _tiling_finished(self):
+        print(all([sum(batch.values()) == 0 for batch in self._state.batches]) and (sum(self._state.bench.values()) == 0))
+        return all([sum(batch.values()) == 0 for batch in self._state.batches]) and (sum(self._state.bench.values()) == 0)
+    
+    def _end_round(self):
+        first_player = -1
+        for i, player in enumerate(self._state.player_boards):
+            if Tile.FIRST in player.floor:
+                first_player = i
+        assert first_player >= 0
+        
+        self._score_round()
+        if self._game_over():
+            self._score_bonuses()
+            self._state.turn = -1
+            return
+        self._craft()
+
+        self._state.turn = first_player
+
+    def _score_round(self):  # Move over and discard tiles and score points
+        for player in self._state.player_boards:
+            for row in range(SETTINGS.ROWS):
+                content = player.stage_contents[row]
+                fullness = player.stage_fullnesses[row]
+                if fullness == row+1:  # Stage is full
+                    if player.advanced:
+                        raise NotImplementedError("Need to write this part still")
+                    else:
+                        dest_id = SETTINGS.BASIC_PATTERN[row].index(content)+1
+                    if dest_id == 0:
+                        player.floor.extend([content for i in range(fullness)])
+                    else:
+                        player.panel[row][dest_id-1] = content
+                        player.score += self._score_tile(player.panel, row, dest_id-1)
+                        self._state.discard[content] += fullness-1  # We discard all of the tiles but the one going onto the panel
+                    player.stage_fullnesses[row] = 0
+                    player.stage_contents[row] = Tile.NONE
+            for i in range(min(len(player.floor), len(SETTINGS.PENALTIES))):
+                player.score -= SETTINGS.PENALTIES[i]
+            for tile in player.floor:
+                self._state.discard[tile] += 1
+            player.floor = []
+    
+    @classmethod
+    def _score_tile(cls, panel, row, col):
+        assert panel[row][col] is not Tile.NONE
+        extents = {direction: cls._contiguous(panel, row, col, direction) for direction in Direction}
+        horizontal = extents[Direction.LEFT]+extents[Direction.RIGHT]-1  # We count the active tile in each direction and only want it counted once
+        vertical = extents[Direction.UP]+extents[Direction.DOWN]-1
+        return horizontal+vertical-(1 if (horizontal == 1 or vertical == 1) else 0)  # If there are linkages in both directions, just add them up. If there are linkages in only one or none of the directions, subtract one from this sum.
+
+    @classmethod
+    def _contiguous(cls, panel, row, col, direction):  # Recursively determines how many tiles are non-NONE in a particular direction
+        if row < 0 or row >= SETTINGS.ROWS or col < 0 or col >= SETTINGS.COLS: return 0
+        if panel[row][col] is Tile.NONE: return 0
+        movers = {Direction.LEFT: lambda row, col: (row, col-1),
+                 Direction.RIGHT: lambda row, col: (row, col+1),
+                 Direction.UP: lambda row, col: (row-1, col),
+                 Direction.DOWN: lambda row, col: (row+1, col)}
+        return 1 + cls._contiguous(panel, *movers[direction](row, col), direction)
+    
+    def _score_bonuses(self):
+        for player in self._state.player_boards:
+            for row in player.panel:
+                if all([tile is not Tile.NONE for tile in row]):  # player has a horizontal line
+                    player.score += SETTINGS.BONUSES.HORIZONTAL
+            for col in range(SETTINGS.COLS):
+                if all([player.panel[i][col] is not Tile.NONE for i in range(SETTINGS.ROWS)]):  # player has a vertical line
+                    player.score += SETTINGS.BONUSES.VERTICAL
+            for tile in Tile.color_tiles():
+                if sum([row.count(tile) for row in player.panel]) == min(SETTINGS.ROWS, SETTINGS.COLS):  # player has all possible tiles of a given color (in a theoretical game where ROWS!=COLS, the maximum possible amount of each color is min(ROWS, COLS))
+                    player.score += SETTINGS.BONUSES.COLOR
+    
+    @staticmethod
+    def format_source(source_id, capitalize=False):
+        if source_id > 0:
+            return ("Batch " if capitalize else "batch ")+str(source_id)
+        else:
+            return "Bench" if capitalize else "bench"
+
+    @staticmethod
+    def format_dest(dest_id, capitalize=False):
+        if dest_id > 0:
+            return ("Stage " if capitalize else "stage ")+str(dest_id)
+        else:
+            return "Floor" if capitalize else "floor"
     
     @property
     def state(self):
@@ -249,15 +368,14 @@ def main():
     # print(g)
     g._craft()
     print(g)
-    g.play(0, Tile.CRIMSON, 1, 4)
+    g.play(Move(0, Tile.CRIMSON, 1, 4))
     print(g)
-    g.play(1, Tile.CRIMSON, 2, 0)
+    g.play(Move(1, Tile.CRIMSON, 2, 0))
     print(g)
-    g.play(0, Tile.DUSK, 0, 3)
+    g.play(Move(0, Tile.DUSK, 0, 3))
     print(g)
-    g.play(1, Tile.CRIMSON, 5, 1)
+    g.play(Move(1, Tile.CRIMSON, 5, 1))
     print(g)
-
 
 
 if __name__ == "__main__":
