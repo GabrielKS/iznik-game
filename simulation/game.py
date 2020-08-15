@@ -223,7 +223,7 @@ class Game:
         n_tiles = source[move.tile]
         source[move.tile] = 0
         if move.source_id == 0:
-            if Tile.FIRST in source:
+            if source[Tile.FIRST] > 0:
                 source[Tile.FIRST] -= 1
                 player.floor.append(Tile.FIRST)
         else:
@@ -259,7 +259,6 @@ class Game:
         return False
     
     def _tiling_finished(self):
-        print(all([sum(batch.values()) == 0 for batch in self._state.batches]) and (sum(self._state.bench.values()) == 0))
         return all([sum(batch.values()) == 0 for batch in self._state.batches]) and (sum(self._state.bench.values()) == 0)
     
     def _end_round(self):
@@ -267,6 +266,7 @@ class Game:
         for i, player in enumerate(self._state.player_boards):
             if Tile.FIRST in player.floor:
                 first_player = i
+                break
         assert first_player >= 0
         
         self._score_round()
@@ -280,24 +280,40 @@ class Game:
 
     def _score_round(self):  # Move over and discard tiles and score points
         for player in self._state.player_boards:
+            # Move tiles over
             for row in range(SETTINGS.ROWS):
                 content = player.stage_contents[row]
                 fullness = player.stage_fullnesses[row]
                 if fullness == row+1:  # Stage is full
                     if player.advanced:
                         raise NotImplementedError("Need to write this part still")
+                        # dest_id = something
                     else:
                         dest_id = SETTINGS.BASIC_PATTERN[row].index(content)+1
                     if dest_id == 0:
                         player.floor.extend([content for i in range(fullness)])
+                        player.stage_fullnesses[row] = 0
+                        player.stage_contents[row] = Tile.NONE
                     else:
                         player.panel[row][dest_id-1] = content
                         player.score += self._score_tile(player.panel, row, dest_id-1)
-                        self._state.discard[content] += fullness-1  # We discard all of the tiles but the one going onto the panel
-                    player.stage_fullnesses[row] = 0
-                    player.stage_contents[row] = Tile.NONE
+            
+            # Score the floor
             for i in range(min(len(player.floor), len(SETTINGS.PENALTIES))):
                 player.score -= SETTINGS.PENALTIES[i]
+        
+        # Status update (TODO: decide how I want to do this within the Player framework)
+        print("ROUND END AFTER SCORING BEFORE DISCARD:")
+        print(self.view)
+            
+        # Discard and clear
+        for player in self._state.player_boards:
+            for row in range(SETTINGS.ROWS):
+                fullness = player.stage_fullnesses[row]
+                if fullness == row+1:
+                    player.stage_fullnesses[row] = 0
+                    player.stage_contents[row] = Tile.NONE
+                    self._state.discard[content] += fullness-1  # We discard all of the tiles but the one going onto the panel
             for tile in player.floor:
                 self._state.discard[tile] += 1
             player.floor = []
