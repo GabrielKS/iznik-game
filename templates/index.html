@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<head>
+    <title>Flask and React Lightweight Combination Test</title>
+</head>
+<body>
+    Hello, world 1!
+    <div id="reactroot"></div>
+    
+    <!-- React library -->
+    <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+    <!-- React components -->
+    <script src="{{ url_for("static", filename="components.js") }}"></script>
+</body>
