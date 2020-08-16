@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<head>
+    <title>{% block title %}{% endblock %} – iznik-game</title>
+</head>
+<body>
+    {% block content %}{% endblock %}
+    
+    <!-- React library -->
+    <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+    <!-- React components -->
+    <script src="{{ url_for("static", filename=scriptname) }}"></script>
+</body>
