@@ -1,11 +1,12 @@
 {
     "compilerOptions": {
         "target": "ES5",
-        "lib": ["ES6", "DOM"],
+        "lib": ["ES6", "DOM", "ES5", "ES2017"],
         "module": "CommonJS",
         "sourceMap": true,
         "rootDir": "src",
         "outDir": "static",
-        "jsx": "react"
+        "jsx": "react",
+        "allowSyntheticDefaultImports": true
     }
 }

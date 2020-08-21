@@ -40,7 +40,7 @@ class Tile(Enum):
             if tile.symbol.casefold() == symbol.casefold():  # casefold to ignore case
                 return tile
     
-    def __str__(self):
+    def __str__(self):  # It does too return a string! pylint:disable=invalid-str-returned
         return self.name
     
 class Direction(Enum):

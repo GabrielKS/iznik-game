@@ -1,8 +1,9 @@
 [MASTER]
 
 # Begin section added manually by Gabriel
-init-hook = "from pylint.config import find_pylintrc; import os, sys; sys.path.append(os.path.dirname(find_pylintrc())) # Inspired by https://stackoverflow.com/questions/1899436/pylint-unable-to-import-error-how-to-set-pythonpath/39207275#39207275
-disable = missing-module-docstring, missing-function-docstring
+# init-hook = "from pylint.config import find_pylintrc; import os, sys; sys.path.append(os.path.dirname(find_pylintrc())) # Inspired by https://stackoverflow.com/a/39207275, but found a better solution that goes in settings.json
+disable = all
+enable = F, E, unreachable, duplicate-key, unnecessary-semicolon, global-variable-not-assigned, unused-variable, binary-op-exception, bad-format-string, anomalous-backslash-in-string, bad-open-mode # Inspired by https://code.visualstudio.com/docs/python/linting to fix Pylint saying too much
 # End section added manually by Gabriel
 
 # A comma-separated list of package or module names from where C extensions may
