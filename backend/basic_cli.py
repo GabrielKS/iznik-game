@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request
-from simulation.game import Game, Move
+from simulation.game import Game, Move, Tile
 from simulation.player import Player
 from simulation.controller import Controller
+import time
 
 bp = Blueprint("basic CLI", __name__, url_prefix="/basic-cli")
 
@@ -19,16 +20,25 @@ def play():
     body = request.get_json()
     print(body)
     if request.method == "GET":
+        # Requesting the page
         return render_template("play.html", scriptname="basic-cli.js")
     elif request.method == "POST":
         if body is not None:
             if "requestType" in body:
                 if body["requestType"] == "stateText":
+                    # Requesting game state
                     if body["player"] is None:
-                        return {"stateText": "Set your player ID first!"}
+                        return {"stateText": timestamp()+"\nSet your player ID first!"}
                     else:
-                        return {"stateText": games[0].players[int(body["player"])].state_text}
-        return "Move acknowledged: "+str(body)
+                        return {"stateText": timestamp()+"\n"+games[0].players[int(body["player"])].state_text}
+        # Sending in a move
+        move = Move(int(body["player"]), Tile.from_symbol(body["tile"]), int(body["source"]), int(body["dest"]))
+        games[0].players[move.player_id].set_next_move(move)
+        games[0].step()
+        return "Move acknowledged: "+str(move)
+
+def timestamp():
+    return f"{time.asctime()} .{round((time.time()%1)*1000)}"
 
 class CLIPlayer(Player):
     def __init__(self, player_id, n_players):

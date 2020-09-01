@@ -7,6 +7,7 @@ const { render } = ReactDOM;
 const nullLabel = "-";  // A text label for the "Select:" option in dropdown menus
 const labelToNull = (label) => (label === nullLabel ? null : label);
 const nullToLabel = (value) => (value === null ? nullLabel : value);
+const updateInterval = 1000;
 
 type GameState = {
     stateText: string
@@ -178,7 +179,7 @@ class CLIInterface extends GameInterface {
 
 }
 
-class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player: number | null}> {
+class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player: number | null, intervalID: number | null}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -186,22 +187,32 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
                 stateText: "Not yet updated…"
             },
             stagedMove: {source: null, tile: null, dest: null},
-            player: null
+            player: null,
+            intervalID: null
         };
         this.handleMoveChange = this.handleMoveChange.bind(this);
         this.handleMoveSubmit = this.handleMoveSubmit.bind(this);
         this.handlePlayerChange = this.handlePlayerChange.bind(this);
+        this.pollServerManually = this.pollServerManually.bind(this);
         this.pollServer = this.pollServer.bind(this);
+        this.pollServerPlayer = this.pollServerPlayer.bind(this);
         this.receiveState = this.receiveState.bind(this);
     }
 
-    pollServer(): void {
+    pollServerManually(): void {
         this.setState({
             gameState: {
                 stateText: "Contacting server…"
             }
         });
+        this.pollServer();
+    }
 
+    pollServer(): void {
+        this.pollServerPlayer(this.state.player)
+    }
+
+    pollServerPlayer(player: number | null): void {
         const xhttp = new XMLHttpRequest();
         const cf = this.receiveState;
         xhttp.onreadystatechange = function() {
@@ -213,7 +224,7 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
         xhttp.setRequestHeader("Content-type", "application/json");
         xhttp.send(JSON.stringify({
             requestType: "stateText",
-            player: this.state.player
+            player: player
         }));
     }
 
@@ -255,9 +266,27 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
     }
 
     handlePlayerChange(event) {
+        // console.log(true)
+        const player = labelToNull(event.target.value)
         this.setState({
-            player: labelToNull(event.target.value)
+            player: player
         });
+
+        if (player == null) {
+            clearInterval(this.state.intervalID);
+            this.setState({
+                intervalID: null
+            });
+        }
+        else {
+            const intervalID = setInterval(this.pollServer, updateInterval);
+            console.log(intervalID);
+            this.setState({
+                intervalID: intervalID
+            });
+        }
+
+        this.pollServerPlayer(player);
     }
 
     render() {
@@ -271,7 +300,7 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
                     </select>
                 </label><br />
                 <label>State text:<br />
-                <textarea id="stateText" value={this.state.gameState.stateText} readOnly rows={20} cols={41}></textarea>
+                <textarea id="stateText" value={this.state.gameState.stateText} readOnly rows={21} cols={41}></textarea>
                 <label>Update:
                     <button id="update" onClick={this.pollServer} disabled={this.state.player == null}>Update</button>
                 </label>
