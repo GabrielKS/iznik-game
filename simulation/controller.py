@@ -1,5 +1,5 @@
-import game
-import player
+from simulation import game
+from simulation import player
 
 class Controller:
     def __init__(self, game, players):
@@ -20,6 +20,7 @@ class Controller:
             return
         else:
             move = self.players[turn].play(self.game.check)
+            if move is None: return  # If player.play() fails, we'll just call step() again later
             assert isinstance(move, game.Move), f"Invalid move: {move}"
             assert move.player_id == turn, f"It is Player {turn}'s turn, not Player {move.player_id}'s"
             self.game.play(move)

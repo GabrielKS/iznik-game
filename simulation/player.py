@@ -1,4 +1,4 @@
-import game
+from simulation import game
 from typing import Callable, Tuple, List
 
 class Player:

@@ -1,6 +1,6 @@
-import game
-import player
-import controller
+from simulation import game
+from simulation import player
+from simulation import controller
 import dataclasses
 import collections
 
