@@ -15,7 +15,7 @@ class Controller:
         turn = self.game.view.turn
         if turn < 0:
             print("Game over!")
-            print("Player "+max(range(len(self.game.state.player_boards)), [board.score for board in self.game.state.player_boards])+" won!")
+            # print("Player "+max(range(len(self.game.state.player_boards)), [board.score for board in self.game.state.player_boards])+" won!")  # TODO: redo win handling
             self.game_over = True
             return
         else:

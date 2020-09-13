@@ -6,6 +6,7 @@ from collections import Counter, namedtuple
 import random
 import hashlib
 
+debug = False
 
 class Tile(Enum):
     def __init__(self, value, name, symbol, iscolor):
@@ -139,6 +140,8 @@ class GameState:
     
     @staticmethod
     def _format_tile_list(tiles, separator=" "):
+        tiles = [t for t in tiles]
+        tiles.sort(key=(lambda t: t.value))
         return "["+separator.join([t.symbol for t in tiles])+"]"
     
     @staticmethod
@@ -148,9 +151,10 @@ class GameState:
         return hasher.hexdigest()
 
     def __str__(self):
-        result = f"Players: {self.n_players}"
-        result += f"\nAdvanced: "+("yes" if self.advanced else "no")
-        result += f"\nTurn: Player {self.turn}\n"
+        result = ""
+        if debug: result += f"Players: {self.n_players}\n"
+        if debug: result += "Advanced: "+("yes\n" if self.advanced else "no\n")
+        result += f"Turn: Player {self.turn}\n"
         player_strs = []
         for i, p in enumerate(self.player_boards):
             player_strs.append([f"Player {i}:"])
@@ -173,6 +177,14 @@ class GameState:
         if self.random_state is not None: result += "\n\nHash of random state: "+str(self.deterministic_hash(self.random_state))
 
         return result
+    
+    @property
+    def winners(self):
+        if self.turn >= 0: return []
+        scores = [board.score for board in self.player_boards]
+        top_score = max(scores)
+        return [i for i, score in enumerate(scores) if score == top_score]
+
 
 class Game:
     def __init__(self, state: GameState):
@@ -243,8 +255,8 @@ class Game:
             self._end_round()
     
     def check(self, move):
-        if move.player_id != self._state.turn: return False, IllegalGameOperationError(f"It is not Player {move.player_id}'s turn, it is Player {self._state.turn}'s turn'")
-        if (self._state.bench if move.source_id == 0 else self._state.batches[move.source_id-1])[move.tile] == 0: return False, IllegalGameOperationError(f"No tiles of type {move.tile} to take from {self.format_source(move.source_id)}")
+        if move.player_id != self._state.turn: return False, IllegalGameOperationError(f"It is not Player {move.player_id}'s turn, it is Player {self._state.turn}'s turn")
+        if (self._state.bench if move.source_id == 0 else self._state.batches[move.source_id-1])[move.tile] == 0: return False, IllegalGameOperationError(f"No tiles of type {move.tile} to take from {self.format_source(move.source_id, capitalize=True)}")
         if move.dest_id > 0:
             player = self._state.player_boards[move.player_id]
             if move.tile in player.panel[move.dest_id-1]: return False, IllegalGameOperationError(f"There is already a {move.tile} tile in row {move.dest_id}")
@@ -303,8 +315,8 @@ class Game:
                 player.score -= SETTINGS.PENALTIES[i]
         
         # Status update (TODO: decide how I want to do this within the Player framework)
-        print("ROUND END AFTER SCORING BEFORE DISCARD:")
-        print(self.view)
+        # print("ROUND END AFTER SCORING BEFORE DISCARD:")
+        # print(self.view)
             
         # Discard and clear
         for player in self._state.player_boards:

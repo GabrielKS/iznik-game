@@ -4,6 +4,8 @@
 const { Component } = React;  // Mysterious fix inspired by https://stackoverflow.com/a/50927095
 const { render } = ReactDOM;
 
+const debug = false;
+
 const nullLabel = "-";  // A text label for the "Select:" option in dropdown menus
 const labelToNull = (label) => (label === nullLabel ? null : label);
 const nullToLabel = (value) => (value === null ? nullLabel : value);
@@ -24,6 +26,7 @@ type GameState = {
 // }
 
 type Tile = "A" | "B" | "C" | "D" | "E"
+type StatusType = "note" | "error" | "prompt"
 
 type Move = {
     source: number | null,
@@ -69,7 +72,7 @@ class GraphicalInterface extends GameInterface {
 
     render() {
         return (
-            <form id="graphicalInput" onSubmit={this.handleSubmit}>
+            <form id="graphical-input" onSubmit={this.handleSubmit}>
                 <label>Source:
                     <select name="source" id="source" value={nullToLabel(this.props.move.source)} onChange={this.handleChange} disabled={this.props.input_disabled}>
                         <option value={nullLabel}>Select:</option>
@@ -166,7 +169,7 @@ class CLIInterface extends GameInterface {
 
     render() {
         return (
-            <form id="cliInput" onSubmit={this.handleSubmit}>
+            <form id="cli-input" onSubmit={this.handleSubmit}>
                 <label>CLI:
                     <input type="text" id="cli" value={this.moveToCommand(this.props.move)} onChange={this.handleChange}  disabled={this.props.input_disabled}/>
                 </label>
@@ -179,7 +182,21 @@ class CLIInterface extends GameInterface {
 
 }
 
-class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player: number | null, intervalID: number | null}> {
+class StatusMsg extends Component<{msg: string, type: StatusType}, {}> {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <div id="status-line">Status:{" "}
+            <span id="status-msg" className={"status-"+this.props.type}>{this.props.msg}</span>
+            </div>
+        );
+    }
+}
+
+class Game extends Component<{}, {gameState: GameState, stagedMove: Move, myPlayer: number | null, intervalID: number | null, status: string, statusType: StatusType}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -187,8 +204,10 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
                 stateText: "Not yet updated…"
             },
             stagedMove: {source: null, tile: null, dest: null},
-            player: null,
-            intervalID: null
+            myPlayer: null,
+            intervalID: null,
+            status: "Please select your Player ID above",
+            statusType: "prompt"
         };
         this.handleMoveChange = this.handleMoveChange.bind(this);
         this.handleMoveSubmit = this.handleMoveSubmit.bind(this);
@@ -197,6 +216,7 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
         this.pollServer = this.pollServer.bind(this);
         this.pollServerPlayer = this.pollServerPlayer.bind(this);
         this.receiveState = this.receiveState.bind(this);
+        this.moveSent = this.moveSent.bind(this);
     }
 
     pollServerManually(): void {
@@ -209,7 +229,7 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
     }
 
     pollServer(): void {
-        this.pollServerPlayer(this.state.player)
+        this.pollServerPlayer(this.state.myPlayer)
     }
 
     pollServerPlayer(player: number | null): void {
@@ -229,15 +249,18 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
     }
 
     receiveState(xhttp) {
+        const response = JSON.parse(xhttp.response)
         this.setState({
             gameState: {
-                stateText: JSON.parse(xhttp.response).stateText
-            }
+                stateText: response.stateText
+            },
+            status: response.status,
+            statusType: response.statusType
         });
     }
     
     sendMove(move: Move): void {
-        const playerMove: PlayerMove = Object.assign({}, {player: this.state.player}, move)
+        const playerMove: PlayerMove = Object.assign({}, {player: this.state.myPlayer}, move)
         const xhttp = new XMLHttpRequest();
         const cf = this.moveSent;
         xhttp.onreadystatechange = function() {
@@ -251,7 +274,14 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
     }
 
     moveSent(xhttp) {
-        console.log(xhttp)
+        console.log(xhttp);
+        const success = JSON.parse(xhttp.response).success;
+        console.log(success);
+        if (success) {
+            this.setState({
+                stagedMove: {source: null, tile: null, dest: null}
+            });
+        }
     }
 
     handleMoveChange(move: Move) {
@@ -269,7 +299,7 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
         // console.log(true)
         const player = labelToNull(event.target.value)
         this.setState({
-            player: player
+            myPlayer: player
         });
 
         if (player == null) {
@@ -278,9 +308,8 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
                 intervalID: null
             });
         }
-        else {
+        else if (this.state.intervalID == null) {
             const intervalID = setInterval(this.pollServer, updateInterval);
-            console.log(intervalID);
             this.setState({
                 intervalID: intervalID
             });
@@ -290,23 +319,27 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, player
     }
 
     render() {
+        const update = debug ?
+            (<label>Update:
+                <button id="update" onClick={this.pollServer} disabled={this.state.myPlayer == null}>Update</button>
+            </label>)
+            : null
         return (
-            <div id="gameRendering">
+            <div id="game-rendering">
                 <label>Player ID:
-                <select name="dest" id="dest" value={nullToLabel(this.state.player)} onChange={this.handlePlayerChange}>
+                <select name="dest" id="dest" value={nullToLabel(this.state.myPlayer)} onChange={this.handlePlayerChange}>
                         <option value={nullLabel}>Select:</option>
                         <option value="0">Player 0</option>
                         <option value="1">Player 1</option>
                     </select>
                 </label><br />
                 <label>State text:<br />
-                <textarea id="stateText" value={this.state.gameState.stateText} readOnly rows={21} cols={41}></textarea>
-                <label>Update:
-                    <button id="update" onClick={this.pollServer} disabled={this.state.player == null}>Update</button>
+                <textarea id="state-text" value={this.state.gameState.stateText} readOnly rows={debug ? 21 : 19} cols={41}></textarea>
+                <StatusMsg msg={this.state.status} type={this.state.statusType}/>
+                {update}
                 </label>
-                </label><br />
-                    <GraphicalInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.player == null ? "disabled" : null}/>
-                    <CLIInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.player == null ? "disabled" : null}/>
+                    <GraphicalInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.myPlayer == null ? "disabled" : null}/>
+                    <CLIInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.myPlayer == null ? "disabled" : null}/>
             </div>
         );
     }
