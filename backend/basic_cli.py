@@ -24,7 +24,7 @@ def play():
     body = request.get_json()
     if request.method == "GET":
         # Requesting the page
-        return render_template("play.html", scriptname="basic-cli.js")
+        return render_template("play.html", scriptname="basic-cli.js", stylename="css/basic-cli.css")
     elif request.method == "POST":
         if body is not None:
             if "requestType" in body:

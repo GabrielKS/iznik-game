@@ -1,0 +1,53 @@
+body {
+    background-image: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0)), url("../img/tile1.png");
+    background-size: 30em;
+    background-position: 50% 50%;
+    margin: 0;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+header, footer, section {
+    background-color: rgba(255, 255, 255, 0.75);
+    padding: .5em;
+    backdrop-filter: blur(2px);
+}
+
+footer {
+    margin-top: auto;
+}
+
+h1 {
+    display: inline;
+}
+
+.author {
+    float: right;
+    font-weight: bold;
+    font-size: 1.17em;
+}
+
+#main {
+    margin: 1em auto 1em auto;
+}
+
+.left {
+    float: left
+}
+
+.right {
+    float: right
+}
+
+#state-text {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url("../img/tile2.png");
+    background-size: cover;
+}
+
+#state-text:before {
+    filter: blur(2px);
+
+}
