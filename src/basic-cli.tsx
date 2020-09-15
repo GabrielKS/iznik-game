@@ -73,41 +73,37 @@ class GraphicalInterface extends GameInterface {
     render() {
         return (
             <form id="graphical-input" onSubmit={this.handleSubmit}>
-                <label>Source:
-                    <select name="source" id="source" value={nullToLabel(this.props.move.source)} onChange={this.handleChange} disabled={this.props.input_disabled}>
-                        <option value={nullLabel}>Select:</option>
-                        <option value="0">Bench</option>
-                        <option value="1">Batch 1</option>
-                        <option value="2">Batch 2</option>
-                        <option value="3">Batch 3</option>
-                        <option value="4">Batch 4</option>
-                        <option value="5">Batch 5</option>
-                    </select>
-                </label>
-                <label>Tile type:
-                    <select name="tile" id="tile" value={nullToLabel(this.props.move.tile)} onChange={this.handleChange} disabled={this.props.input_disabled}>
-                        <option value={nullLabel}>Select:</option>
-                        <option value="A">Azul</option>
-                        <option value="B">Blaze</option>
-                        <option value="C">Crimson</option>
-                        <option value="D">Dusk</option>
-                        <option value="E">Ether</option>
-                    </select>
-                </label>
-                <label>Destination:
-                    <select name="dest" id="dest" value={nullToLabel(this.props.move.dest)} onChange={this.handleChange} disabled={this.props.input_disabled}>
-                        <option value={nullLabel}>Select:</option>
-                        <option value="0">Floor</option>
-                        <option value="1">Stage 1</option>
-                        <option value="2">Stage 2</option>
-                        <option value="3">Stage 3</option>
-                        <option value="4">Stage 4</option>
-                        <option value="5">Stage 5</option>
-                    </select>
-                </label>
-                <label>Play:
-                    <input type="submit" value="Submit" disabled={this.submit_disabled()}/>
-                </label>
+                <label htmlFor="source">Source:</label>
+                <select name="source" id="source" value={nullToLabel(this.props.move.source)} onChange={this.handleChange} disabled={this.props.input_disabled}>
+                    <option value={nullLabel}>Source&hellip;</option>
+                    <option value="0">Bench</option>
+                    <option value="1">Batch 1</option>
+                    <option value="2">Batch 2</option>
+                    <option value="3">Batch 3</option>
+                    <option value="4">Batch 4</option>
+                    <option value="5">Batch 5</option>
+                </select>
+                <label htmlFor="tile">Tile type:</label>
+                <select name="tile" id="tile" value={nullToLabel(this.props.move.tile)} onChange={this.handleChange} disabled={this.props.input_disabled}>
+                    <option value={nullLabel}>Tile&hellip;</option>
+                    <option value="A">Azul</option>
+                    <option value="B">Blaze</option>
+                    <option value="C">Crimson</option>
+                    <option value="D">Dusk</option>
+                    <option value="E">Ether</option>
+                </select>
+                <label htmlFor="dest">Destination:</label>
+                <select name="dest" id="dest" value={nullToLabel(this.props.move.dest)} onChange={this.handleChange} disabled={this.props.input_disabled}>
+                    <option value={nullLabel}>Destination&hellip;</option>
+                    <option value="0">Floor</option>
+                    <option value="1">Stage 1</option>
+                    <option value="2">Stage 2</option>
+                    <option value="3">Stage 3</option>
+                    <option value="4">Stage 4</option>
+                    <option value="5">Stage 5</option>
+                </select>
+                {/* <label htmlFor="graphical-submit">Play:</label>
+                <input type="submit" value="Submit" id="graphical-submit" disabled={this.submit_disabled()}/> */}
             </form>
         );
     }
@@ -170,12 +166,10 @@ class CLIInterface extends GameInterface {
     render() {
         return (
             <form id="cli-input" onSubmit={this.handleSubmit}>
-                <label>CLI:
-                    <input type="text" id="cli" value={this.moveToCommand(this.props.move)} onChange={this.handleChange}  disabled={this.props.input_disabled}/>
-                </label>
-                <label>Play:
-                    <input type="submit" value="Submit" disabled={this.submit_disabled()}/>
-                </label>
+                <label htmlFor="cli">CLI:</label>
+                <input type="text" id="cli" value={this.moveToCommand(this.props.move)} onChange={this.handleChange}  disabled={this.props.input_disabled} autoComplete="off"/>
+                <label htmlFor="cli-submit">Play:</label>
+                <input type="submit" value="Submit" id="cli-submit" disabled={this.submit_disabled()}/>
             </form>
         );
     }
@@ -189,8 +183,9 @@ class StatusMsg extends Component<{msg: string, type: StatusType}, {}> {
 
     render() {
         return (
-            <div id="status-line">Status:{" "}
-            <span id="status-msg" className={"status-"+this.props.type}>{this.props.msg}</span>
+            <div id="status-line">
+                <label htmlFor="status-msg">Status:{" "}</label>
+                <span id="status-msg" className={"status-"+this.props.type}>{this.props.msg}</span>
             </div>
         );
     }
@@ -320,26 +315,31 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, myPlay
 
     render() {
         const update = debug ?
-            (<label>Update:
+            (<div id="update">
+                <label htmlFor="update">Update:</label>
                 <button id="update" onClick={this.pollServer} disabled={this.state.myPlayer == null}>Update</button>
-            </label>)
+            </div>)
             : null
         return (
             <div id="game-rendering">
-                <label>Player ID:
+                <div id="top-interface">
+                <label htmlFor="dest">Player ID:</label>
                 <select name="dest" id="dest" value={nullToLabel(this.state.myPlayer)} onChange={this.handlePlayerChange}>
-                        <option value={nullLabel}>Select:</option>
+                        <option value={nullLabel}>Select player:</option>
                         <option value="0">Player 0</option>
                         <option value="1">Player 1</option>
-                    </select>
-                </label><br />
-                <label>State text:<br />
-                <textarea id="state-text" value={this.state.gameState.stateText} readOnly rows={debug ? 21 : 19} cols={41}></textarea>
+                </select><br />
                 <StatusMsg msg={this.state.status} type={this.state.statusType}/>
-                {update}
-                </label>
-                    <GraphicalInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.myPlayer == null ? "disabled" : null}/>
-                    <CLIInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.myPlayer == null ? "disabled" : null}/>
+                </div>
+                <div id="center-interface">
+                    <label htmlFor="state-text">State text:<br /></label>
+                    <textarea id="state-text" value={this.state.gameState.stateText} readOnly rows={debug ? 25 : 23} cols={41}></textarea>
+                </div>
+                <div id="bottom-interface">
+                    {update}
+                        <GraphicalInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.myPlayer == null ? "disabled" : null}/>
+                        <CLIInterface move={this.state.stagedMove} handleMoveChange={this.handleMoveChange} handleMoveSubmit={this.handleMoveSubmit} input_disabled={this.state.myPlayer == null ? "disabled" : null}/>
+                </div>
             </div>
         );
     }

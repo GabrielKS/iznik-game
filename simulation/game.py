@@ -255,12 +255,12 @@ class Game:
             self._end_round()
     
     def check(self, move):
-        if move.player_id != self._state.turn: return False, IllegalGameOperationError(f"It is not Player {move.player_id}'s turn, it is Player {self._state.turn}'s turn")
-        if (self._state.bench if move.source_id == 0 else self._state.batches[move.source_id-1])[move.tile] == 0: return False, IllegalGameOperationError(f"No tiles of type {move.tile} to take from {self.format_source(move.source_id, capitalize=True)}")
+        if move.player_id != self._state.turn: return False, IllegalGameOperationError(f"It is player {self._state.turn}'s turn, not Player {move.player_id}'s.")
+        if (self._state.bench if move.source_id == 0 else self._state.batches[move.source_id-1])[move.tile] == 0: return False, IllegalGameOperationError(f"No {move.tile} in {self.format_source(move.source_id, capitalize=True)}.")
         if move.dest_id > 0:
             player = self._state.player_boards[move.player_id]
-            if move.tile in player.panel[move.dest_id-1]: return False, IllegalGameOperationError(f"There is already a {move.tile} tile in row {move.dest_id}")
-            if player.stage_contents[move.dest_id-1] not in (move.tile, Tile.NONE): return False, IllegalGameOperationError(f"Cannot add {move.tile} to stage of type {player.stage_contents[move.dest_id-1]}")
+            if move.tile in player.panel[move.dest_id-1]: return False, IllegalGameOperationError(f"Panel row {move.dest_id} already contains {move.tile}.")
+            if player.stage_contents[move.dest_id-1] not in (move.tile, Tile.NONE): return False, IllegalGameOperationError(f"Cannot add {move.tile} to {player.stage_contents[move.dest_id-1]} stage.")
         return True, ImpossibleGameFlowError("This error should not be thrown")
     
     def _game_over(self):

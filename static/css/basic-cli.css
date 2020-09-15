@@ -2,52 +2,120 @@ body {
     background-image: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0)), url("../img/tile1.png");
     background-size: 30em;
     background-position: 50% 50%;
+    background-attachment: fixed;
     margin: 0;
     min-height: 100%;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 0.9em;
 }
 
 header, footer, section {
     background-color: rgba(255, 255, 255, 0.75);
-    padding: .5em;
+    padding: 0.75em;
     backdrop-filter: blur(2px);
+}
+
+header {
+    border-bottom: 1px solid black;
 }
 
 footer {
     margin-top: auto;
+    font-size: 0.8em;
+    border-top: 1px solid black;
 }
 
 h1 {
     display: inline;
+    margin: 0.1em;
+}
+
+h2 {
+    margin: 0.1em;
 }
 
 .author {
     float: right;
     font-weight: bold;
     font-size: 1.17em;
+    margin-top: 0.75em;
 }
 
 #main {
-    margin: 1em auto 1em auto;
+    margin: 2em auto;
+    text-align: center;
+}
+
+#game label {
+    display: none;
+}
+
+#game * {
+    margin: 0.1em 0.5em;
+}
+
+#game-rendering {
+    margin: 0 0;
 }
 
 .left {
-    float: left
+    float: left;
+    /* margin-left: 5% */
 }
 
 .right {
-    float: right
+    float: right;
+    /* margin-right: 5% */
 }
 
 #state-text {
-    background-image: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url("../img/tile2.png");
+    background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), url("../img/tile2.png");
     background-size: cover;
+    background-position: center;
+    padding: 0.75em;
+    margin: 0 4.75em;
+    box-shadow: 0 0 0.5em 0.5em rgba(0, 0, 0, 0.2), 0 0 0.75em 0.75em rgba(127, 127, 127, 0.2) inset;
+    border: 1px solid #888;
+    text-anchor: middle;
+    resize: none;
 }
 
-#state-text:before {
-    filter: blur(2px);
+#status-line {
+    margin: 0.1em;
+}
 
+#status-line span {
+    margin: 0;
+}
+
+.status-prompt, .status-error {
+    font-weight: bold;
+}
+
+.status-prompt {
+    color: green;
+}
+
+.status-error {
+    color: red;
+}
+
+p {
+    margin: 0;
+}
+
+#bottom-interface {
+    background-color: rgba(255, 255, 255, 0.4);
+    border: 1px solid #888;
+    display: inline-block;
+    box-shadow: 0 0 0.5em 0.5em rgba(0, 0, 0, 0.2);
+    padding: 0.5em;
+    margin: 0;
+}
+
+#center-interface {
+    margin: .5em 0;
 }

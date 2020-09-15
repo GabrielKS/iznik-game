@@ -42,7 +42,9 @@ def play():
         return {"success": games[0].players[player_id].move_success}
 
 def timestamp():
-    return f"{time.asctime()} .{round((time.time()%1)*1000)}" if debug else time.strftime("Last updated: %I:%M:%S %p")
+    return f"{time.asctime()} .{round((time.time()%1)*1000)}" if debug else time.strftime("Updated: %I:%M:%S %p")
+    # str(["|", "/", "-", "\\"][round(time.time() % 4)])
+    # time.strftime("Updated: %I:%M:%S %p")
 
 class CLIPlayer(Player):
     def __init__(self, player_id, n_players):
@@ -70,9 +72,9 @@ class CLIPlayer(Player):
                 b = "Tie between "+(" " if len(winners) == 2 else ", ").join(winners_str)+"!"
             self._status_text = a+" "+b
             self._status_type = "prompt"
-            self._state_text += "\n"+a+"\n"+b
+            self._state_text += "\n\n"+a+"\n"+b
         else:
-            self._status_text = f"It is Player {view.turn}'s turn"
+            self._status_text = f"It is Player {view.turn}'s turn."
             self._status_type = "note"
 
     def play(self, validator):
@@ -81,11 +83,11 @@ class CLIPlayer(Player):
             self._status_text = f"Player {self.player_id} did not submit a move."
             self._status_type = "error"
         if self.player_id != self._next_move.player_id:
-            self._status_text = f"This is {self.player_id}'s turn, not {self._next_move.player_id}"
+            self._status_text = f"This is {self.player_id}'s turn, not {self._next_move.player_id}."
             self._status_type = "error"
         valid, error = validator(self._next_move)
         if not valid:
-            self._status_text = "Invalid move; please try again. "+error.message
+            self._status_text = "Invalid move! "+error.message
             self._status_type = "error"
         else:
             self._status_text = "Successful move!"
