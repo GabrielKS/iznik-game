@@ -1,0 +1,23 @@
+{
+  "name": "iznik-game",
+  "version": "1.0.0",
+  "description": "This is a repository for the Iznik game, created by Gabriel Konar-Steenberg in summer 2020.",
+  "main": "",
+  "dependencies": {
+    "@types/prop-types": "^15.7.3",
+    "@types/react": "^16.9.46",
+    "@types/react-dom": "^16.9.8",
+    "csstype": "^3.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": " "
+  },
+  "repository": {
+    "type": "git",
+    "url": " "
+  },
+  "keywords": [],
+  "author": "GabrielKS",
+  "license": "UNLICENSED"
+}
