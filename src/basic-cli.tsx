@@ -245,6 +245,8 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, myPlay
 
     receiveState(xhttp) {
         const response = JSON.parse(xhttp.response)
+        const gameState = JSON.parse(response.gameState)
+        console.log(gameState)
         this.setState({
             gameState: {
                 stateText: response.stateText

@@ -2,8 +2,10 @@ from flask import Blueprint, render_template, request
 import simulation.game
 from simulation.game import Game, Move, Tile
 from simulation.player import Player
-from simulation.controller import Controller
 import time
+import dataclasses
+from collections import namedtuple
+import json
 
 debug = False
 simulation.game.debug = debug
@@ -11,6 +13,7 @@ simulation.game.debug = debug
 bp = Blueprint("basic CLI", __name__, url_prefix="/basic-cli")
 
 games = []  # To be filled later
+GameResponse = namedtuple("GameResponse", ("stateText", "status", "statusType", "gameState"))
 
 def create_game():
     game = Game.new_game(2, False, random_seed=0)
@@ -31,10 +34,10 @@ def play():
                 if body["requestType"] == "stateText":
                     # Requesting game state
                     if body["player"] is None:
-                        return {"stateText": timestamp()+"\nSet your player ID first!", "status": "Please select your Player ID above", "statusType": "error"}
+                        return GameResponse(stateText=timestamp()+"\nSet your player ID first!", status="Please select your Player ID above", statusType="error", gameState="{}")._asdict()
                     else:
                         clientPlayer = games[0].players[int(body["player"])]
-                        return {"stateText": timestamp()+"\n"+clientPlayer.state_text, "status": clientPlayer.status_text, "statusType": clientPlayer.status_type}
+                        return GameResponse(stateText=timestamp()+"\n"+clientPlayer.state_text, status=clientPlayer.status_text, statusType=clientPlayer.status_type, gameState=clientPlayer.state_json)._asdict()
         # Sending in a move
         player_id = int(body["player"])
         move = Move(player_id, Tile.from_symbol(body["tile"]), int(body["source"]), int(body["dest"]))
@@ -51,6 +54,7 @@ class CLIPlayer(Player):
         super().__init__(player_id, n_players)
         self._game_state = None
         self._state_text = ""
+        self._state_json = ""
         self._next_move = None
         self._status_text = None
         self._status_type = "note"
@@ -59,6 +63,7 @@ class CLIPlayer(Player):
     def update(self, view):
         self._game_state = view
         self._state_text = str(view)
+        self._state_json = json.dumps(dataclasses.asdict(view), default = lambda x: x.value)
         if view.turn == self.player_id:
             self._status_text = f"Your turn, Player {self.player_id}!"
             self._status_type = "prompt"
@@ -98,6 +103,10 @@ class CLIPlayer(Player):
     @property
     def state_text(self):
         return self._state_text
+
+    @property
+    def state_json(self):
+        return self._state_json
     
     @property
     def status_text(self):

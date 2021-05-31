@@ -2,13 +2,27 @@ from enum import Enum
 import dataclasses
 from dataclasses import dataclass, field
 import typing
-from collections import Counter, namedtuple
+from collections import namedtuple
 import random
 import hashlib
 
 debug = False
 
-class Tile(Enum):
+class multiint(int): # Hack to allow my Tiles to asdict properly in dataclasses
+    def __new__(cls, *args):
+        return int.__new__(cls, args[0])
+    
+    def __deepcopy__(self, memo):  # Deep copying an int (or an enum) should result in the same thing, as it is not mutable
+        return self
+
+class DCounter(typing.Counter):  # Hack to allow my Counters to asdict properly in dataclasses
+    def __init__(self, iterable=None, /, **kwds):
+        if iterable is not None:
+            d = dict(iterable)  # Without this line, line 1112 of dataclasses.py does the wrong thing
+            super().__init__(d)
+        else: super().__init__(kwds)
+
+class Tile(multiint, Enum):
     def __init__(self, value, name, symbol, iscolor):
         self._value_ = value
         self._name_ = name
@@ -121,16 +135,16 @@ class GameState:
     # Public with default
     turn: int = 0
     player_boards: typing.List[PlayerState] = None
-    batches: typing.List[typing.Counter[Tile]] = None
-    bench: typing.Counter[Tile] = field(default_factory=lambda: Counter())
+    batches: typing.List[DCounter[Tile]] = None
+    bench: DCounter[Tile] = field(default_factory=lambda: DCounter())
 
     # Hidden with default
-    supply: typing.Optional[typing.Counter[Tile]] = field(default_factory=lambda: Counter(SETTINGS.INVENTORY))
-    discard: typing.Optional[typing.Counter[Tile]] = field(default_factory=lambda: Counter())
+    supply: typing.Optional[DCounter[Tile]] = field(default_factory=lambda: DCounter(SETTINGS.INVENTORY))
+    discard: typing.Optional[DCounter[Tile]] = field(default_factory=lambda: DCounter())
 
     def __post_init__(self):
         if self.player_boards is None: self.player_boards = [PlayerState(self.advanced) for i in range(self.n_players)]
-        if self.batches is None: self.batches = [Counter({color: 0 for color in Tile.color_tiles()}) for i in range(SETTINGS.N_BATCHES[self.n_players])]
+        if self.batches is None: self.batches = [DCounter({color: 0 for color in Tile.color_tiles()}) for i in range(SETTINGS.N_BATCHES[self.n_players])]
     
     def copy(self):
         return dataclasses.replace(self)
