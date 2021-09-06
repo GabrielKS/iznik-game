@@ -1,0 +1,112 @@
+@import url("./basic-cli.css");
+.board {
+    background-color: red;
+    width: 75vw;  /* Temporary */
+}
+
+.tile-area, .floor-area {
+    background-color: green;
+    display: flex;
+    align-items: stretch;
+}
+
+.floor {
+    background-color: blue;
+    flex-grow: 7;
+    flex-basis: auto;
+}
+
+.scoring {
+    background-color: blue;
+    flex-grow: 4;
+    flex-basis: auto;
+}
+
+.tile-area *, .floor-area * {
+    display: inline-block;
+    border: 1px solid black;
+}
+
+.stages,.panel {
+    flex-grow: 5;
+    flex-basis: auto;
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
+}
+
+.stages {
+    grid-template-areas:
+        ". . . . row1"
+        ". . . row2 row2"
+        ". . row3 row3 row3"
+        ". row4 row4 row4 row4"
+        "row5 row5 row5 row5 row5";
+}
+
+.panel {
+    grid-auto-flow: row;
+}
+
+.arrows {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: auto;
+    grid-template-rows: auto auto auto auto auto;
+    grid-template-areas:
+        "row1"
+        "row2"
+        "row3"
+        "row4"
+        "row5"
+}
+
+.square::before { /* Hack to make things square: https://stackoverflow.com/questions/5445491/height-equal-to-dynamic-width-css-fluid-layout. Needed even with flexbox (https://carlanderson.xyz/how-to-keep-your-flexbox-square/). */
+    content: "";
+    display: block;
+    padding-top: 100%;
+}
+
+.score {
+    position: absolute;
+}
+
+.tile-spot {
+    display: inline-block;
+    border: 1px solid black;
+    background: pink;
+    flex-grow: 1;
+    flex-basis: auto;
+}
+
+.tile-row {
+    border: 1px solid black;
+    background: white;
+    display: flex;
+    align-items: stretch;
+}
+
+.tile-row.row1 {
+    grid-area: row1;
+}
+
+.tile-row.row2 {
+    grid-area: row2;
+}
+
+.tile-row.row3 {
+    grid-area: row3;
+}
+
+.tile-row.row4 {
+    grid-area: row4;
+}
+
+.tile-row.row5 {
+    grid-area: row5;
+}
+
+.arrow {
+    display: block;
+    background: lightblue;
+}

@@ -16,7 +16,7 @@ games = []  # To be filled later
 GameResponse = namedtuple("GameResponse", ("stateText", "status", "statusType", "gameState"))
 
 def create_game():
-    game = Game.new_game(2, False, random_seed=0)
+    game = Game.new_game(2, False, random_seed=1)
     p0 = CLIPlayer(0, 2)
     p1 = CLIPlayer(1, 2)
     return GameContainer(game, (p0, p1))

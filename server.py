@@ -1,5 +1,5 @@
 from flask import Flask, render_template
-from backend import basic_cli
+from backend import basic_cli, frontend_prototype
 import logging
 
 app = Flask(__name__)
@@ -9,4 +9,5 @@ logging.getLogger("werkzeug").disabled = True
 def index():
     return render_template("index.html", scriptname="components.js")
 app.register_blueprint(basic_cli.bp)
+app.register_blueprint(frontend_prototype.bp)
 app.run()
