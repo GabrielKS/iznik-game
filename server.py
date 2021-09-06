@@ -7,7 +7,7 @@ app.debug = True
 logging.getLogger("werkzeug").disabled = True
 @app.route("/")
 def index():
-    return render_template("index.html", scriptname="components.js")
+    return render_template("index.html", scriptname="script/components.js")
 app.register_blueprint(basic_cli.bp)
 app.register_blueprint(frontend_prototype.bp)
 app.run()
