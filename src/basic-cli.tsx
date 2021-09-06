@@ -1,8 +1,6 @@
-// import React from "react";
-// import ReactDOM, { render } from "react-dom";
-
-const { Component } = React;  // Mysterious fix inspired by https://stackoverflow.com/a/50927095
-const { render } = ReactDOM;
+export {}
+import React from 'react';  //:transform_import.remove:
+import ReactDOM from 'react-dom';  //:transform_import.replace:
 
 const debug = false;
 
@@ -38,7 +36,7 @@ type PlayerMove = Move & {
     player: number | null
 }
 
-abstract class GameInterface extends Component<{move: Move, handleMoveChange, handleMoveSubmit, input_disabled: any}, {}> {
+abstract class GameInterface extends React.Component<{move: Move, handleMoveChange, handleMoveSubmit, input_disabled: any}, {}> {
     constructor(props) {
         super(props);
         this.handleChange = this.handleChange.bind(this);
@@ -176,7 +174,7 @@ class CLIInterface extends GameInterface {
 
 }
 
-class StatusMsg extends Component<{msg: string, type: StatusType}, {}> {
+class StatusMsg extends React.Component<{msg: string, type: StatusType}, {}> {
     constructor(props) {
         super(props);
     }
@@ -191,7 +189,7 @@ class StatusMsg extends Component<{msg: string, type: StatusType}, {}> {
     }
 }
 
-class Game extends Component<{}, {gameState: GameState, stagedMove: Move, myPlayer: number | null, intervalID: number | null, status: string, statusType: StatusType}> {
+class Game extends React.Component<{}, {gameState: GameState, stagedMove: Move, myPlayer: number | null, intervalID: number | null, status: string, statusType: StatusType}> {
     constructor(props) {
         super(props);
         this.state = {
@@ -308,7 +306,7 @@ class Game extends Component<{}, {gameState: GameState, stagedMove: Move, myPlay
         else if (this.state.intervalID == null) {
             const intervalID = setInterval(this.pollServer, updateInterval);
             this.setState({
-                intervalID: intervalID
+                intervalID: +intervalID
             });
         }
 
